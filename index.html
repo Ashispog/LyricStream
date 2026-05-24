@@ -599,16 +599,17 @@ const CONFIG = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// SETUP SCREEN
+// SETUP SCREEN — runs after App is defined (see bottom)
 // ═══════════════════════════════════════════════════════════
-(function initSetup() {
+function initSetup() {
+  // Defer so all other scripts are guaranteed initialized
+  if (typeof App === 'undefined') { setTimeout(initSetup, 50); return; }
   const screen = document.getElementById('setup-screen');
   const spId = document.getElementById('inp-sp-id');
   const ytKey = document.getElementById('inp-yt-key');
   const saveBtn = document.getElementById('setup-save-btn');
   const errEl = document.getElementById('setup-error');
 
-  // Pre-fill if saved
   spId.value = localStorage.getItem('ls_sp_id') || '';
   ytKey.value = localStorage.getItem('ls_yt_key') || '';
 
@@ -619,7 +620,6 @@ const CONFIG = {
       App.init();
     }
   }
-  trySkip();
 
   saveBtn.addEventListener('click', () => {
     const id = spId.value.trim();
@@ -638,7 +638,9 @@ const CONFIG = {
     errEl.textContent = msg;
     errEl.style.display = 'block';
   }
-})();
+
+  trySkip();
+}
 
 // ═══════════════════════════════════════════════════════════
 // SPOTIFY PKCE AUTH
@@ -886,7 +888,7 @@ window.onYouTubeIframeAPIReady = function() {
 // ═══════════════════════════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════════════════════════
-const App = (() => {
+var App = (() => {
   let state = {
     tracks: [],
     activeIdx: -1,
@@ -1378,8 +1380,8 @@ function showToast(msg, duration = 3000) {
   setTimeout(() => el.classList.remove('show'), duration);
 }
 
-// Init if already have credentials
-if (document.getElementById('app').style.display === 'block') App.init();
+// Init — everything defined above, safe to call now
+initSetup();
 </script>
 </body>
 </html>
