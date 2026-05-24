@@ -456,6 +456,7 @@ input { font-family: var(--font-body); }
 </head>
 <body>
 
+
 <!-- ═══════════════════════════════════════════════════ -->
 <!-- SETUP SCREEN -->
 <!-- ═══════════════════════════════════════════════════ -->
@@ -589,7 +590,9 @@ input { font-family: var(--font-body); }
 
 <div id="toast"></div>
 
+
 <script>
+
 // ═══════════════════════════════════════════════════════════
 // CONFIG & STORAGE
 // ═══════════════════════════════════════════════════════════
@@ -601,46 +604,7 @@ const CONFIG = {
 // ═══════════════════════════════════════════════════════════
 // SETUP SCREEN — runs after App is defined (see bottom)
 // ═══════════════════════════════════════════════════════════
-function initSetup() {
-  // Defer so all other scripts are guaranteed initialized
-  if (typeof App === 'undefined') { setTimeout(initSetup, 50); return; }
-  const screen = document.getElementById('setup-screen');
-  const spId = document.getElementById('inp-sp-id');
-  const ytKey = document.getElementById('inp-yt-key');
-  const saveBtn = document.getElementById('setup-save-btn');
-  const errEl = document.getElementById('setup-error');
 
-  spId.value = localStorage.getItem('ls_sp_id') || '';
-  ytKey.value = localStorage.getItem('ls_yt_key') || '';
-
-  function trySkip() {
-    if (CONFIG.spotifyClientId && CONFIG.ytKey) {
-      screen.style.display = 'none';
-      document.getElementById('app').style.display = 'block';
-      App.init();
-    }
-  }
-
-  saveBtn.addEventListener('click', () => {
-    const id = spId.value.trim();
-    const yt = ytKey.value.trim();
-    errEl.style.display = 'none';
-    if (!id) { showErr('Please enter your Spotify Client ID.'); return; }
-    if (!yt) { showErr('Please enter your YouTube API key.'); return; }
-    localStorage.setItem('ls_sp_id', id);
-    localStorage.setItem('ls_yt_key', yt);
-    screen.style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    App.init();
-  });
-
-  function showErr(msg) {
-    errEl.textContent = msg;
-    errEl.style.display = 'block';
-  }
-
-  trySkip();
-}
 
 // ═══════════════════════════════════════════════════════════
 // SPOTIFY PKCE AUTH
@@ -1381,7 +1345,48 @@ function showToast(msg, duration = 3000) {
 }
 
 // Init — everything defined above, safe to call now
-initSetup();
+
+
+// ═══════════════════════════════════════════════════════════
+// BOOT — runs after all const/var declarations are evaluated
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', function() {
+  const spId    = document.getElementById('inp-sp-id');
+  const ytKey   = document.getElementById('inp-yt-key');
+  const saveBtn = document.getElementById('setup-save-btn');
+  const errEl   = document.getElementById('setup-error');
+  const screen  = document.getElementById('setup-screen');
+  const appEl   = document.getElementById('app');
+
+  spId.value  = localStorage.getItem('ls_sp_id')  || '';
+  ytKey.value = localStorage.getItem('ls_yt_key') || '';
+
+  function launch() {
+    screen.style.display = 'none';
+    appEl.style.display  = 'block';
+    App.init();
+  }
+
+  function showErr(msg) {
+    errEl.textContent    = msg;
+    errEl.style.display  = 'block';
+  }
+
+  saveBtn.addEventListener('click', function() {
+    const id = spId.value.trim();
+    const yt = ytKey.value.trim();
+    errEl.style.display = 'none';
+    if (!id) { showErr('Please enter your Spotify Client ID.'); return; }
+    if (!yt) { showErr('Please enter your YouTube API key.'); return; }
+    localStorage.setItem('ls_sp_id', id);
+    localStorage.setItem('ls_yt_key', yt);
+    launch();
+  });
+
+  // Auto-skip setup if credentials already saved
+  if (CONFIG.spotifyClientId && CONFIG.ytKey) launch();
+});
+
 </script>
 </body>
 </html>
