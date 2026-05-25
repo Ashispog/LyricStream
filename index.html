@@ -723,7 +723,7 @@ const Spotify = (() => {
     const id = extractPlaylistId(idOrUrl);
     if (!id) throw new Error('Invalid playlist URL');
     const tracks = [];
-    let url = `/playlists/${id}/tracks?limit=50&fields=next,items(track(id,name,artists,album(images),duration_ms))`;
+    let url = `/playlists/${id}/tracks?limit=50`;
     while (url) {
       const data = await apiFetch(url);
       if (!data) break;
