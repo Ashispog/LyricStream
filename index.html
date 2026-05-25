@@ -475,6 +475,19 @@ function bindUI(){
 async function addVideo(){
   const url = els.urlInput.value.trim();
   if(!url) return;
+
+  // Check if it's a playlist URL
+  const playlistId = extractPlaylistId(url);
+  if(playlistId){
+    els.addBtn.disabled=true; els.addBtn.textContent='…';
+    try{
+      await importPlaylist(playlistId);
+      els.urlInput.value='';
+    } catch(e){ toast('Could not load playlist: '+e.message); }
+    finally{ els.addBtn.disabled=false; els.addBtn.textContent='Add'; }
+    return;
+  }
+
   const videoId = extractYTId(url);
   if(!videoId){ toast('Not a valid YouTube URL'); return; }
   if(state.queue.find(v=>v.id===videoId)){ toast('Already in queue'); els.urlInput.value=''; return; }
@@ -486,13 +499,44 @@ async function addVideo(){
     saveQueue();
     renderList();
     els.urlInput.value='';
-    // Auto-play if nothing playing
     if(state.activeIdx===-1) playTrack(state.queue.length-1);
   } catch(e){
     toast('Could not fetch video info: '+e.message);
   } finally{
     els.addBtn.disabled=false; els.addBtn.textContent='Add';
   }
+}
+
+function extractPlaylistId(url){
+  const m = url.match(/[?&]list=([A-Za-z0-9_-]+)/);
+  return m ? m[1] : null;
+}
+
+async function importPlaylist(playlistId){
+  // Fetch up to 50 videos from a YT playlist
+  const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${CFG.ytKey}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('YouTube API '+res.status);
+  const data = await res.json();
+  if(!data.items||!data.items.length) throw new Error('Playlist is empty or private');
+  let added=0;
+  for(const item of data.items){
+    const s=item.snippet;
+    const videoId=s?.resourceId?.videoId;
+    if(!videoId||s.title==='Deleted video'||s.title==='Private video') continue;
+    if(state.queue.find(v=>v.id===videoId)) continue;
+    state.queue.push({
+      id: videoId,
+      title: s.title,
+      channel: s.videoOwnerChannelTitle||s.channelTitle||'',
+      thumb: s.thumbnails?.medium?.url||s.thumbnails?.default?.url||''
+    });
+    added++;
+  }
+  saveQueue();
+  renderList();
+  toast(`Added ${added} videos from playlist`);
+  if(state.activeIdx===-1 && state.queue.length) playTrack(0);
 }
 
 function extractYTId(url){
